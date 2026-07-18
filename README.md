@@ -1,3 +1,4 @@
+![alt replayHQ](https://raw.githubusercontent.com/TaqsBlaze/ReplayQH/refs/heads/main/banner/banner.png)
 # ReplayHQ: AI Coding Agent Flight Recorder
 
 [![Go Version](https://img.shields.io/badge/go-%3E%3D1.23-00ADD8.svg?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/dl/)
