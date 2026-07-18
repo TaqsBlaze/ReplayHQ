@@ -65,3 +65,13 @@ func (p *Process) Close() error {
 func (p *Process) Wait() (*os.ProcessState, error) {
 	return p.proc.Wait()
 }
+
+// Signal sends a signal to the process.
+func (p *Process) Signal(sig os.Signal) error {
+	return p.proc.Signal(sig)
+}
+
+// CloseMaster closes the master side of the pty.
+func (p *Process) CloseMaster() error {
+	return p.master.Close()
+}

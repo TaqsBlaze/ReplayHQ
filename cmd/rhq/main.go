@@ -83,6 +83,7 @@ func runCmd() *cobra.Command {
 		Long:  `Run executes the specified command and records all events
 during its execution for later replay and analysis.`,
 		Args: cobra.MinimumNArgs(1),
+		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Use the global configuration
 			cfg := configVar
@@ -96,7 +97,7 @@ during its execution for later replay and analysis.`,
 			}
 			// Ensure the store is closed when we're done.
 			defer store.Close()
-			// Set up logging to a file inside the trace directory to avoid interfering with command output.
+			// Set up logging to a file inside the track directory to avoid interfering with command output.
 			traceDir := filepath.Join(cfg.DataDir, traceID)
 			logFile, err := os.OpenFile(filepath.Join(traceDir, "replayhq.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 			var logWriter io.Writer
