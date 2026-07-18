@@ -1,5 +1,0 @@
-{"time":"2026-07-18T14:23:43.263961855+02:00","level":"INFO","msg":"Sent output event","length":7}
-{"time":"2026-07-18T14:23:43.264137589+02:00","level":"INFO","msg":"Stdin copy goroutine exiting"}
-{"time":"2026-07-18T14:23:43.26742478+02:00","level":"INFO","msg":"Sent output event","length":17}
-{"time":"2026-07-18T14:23:43.267447476+02:00","level":"ERROR","msg":"Error reading from process","error":"read /dev/ptmx: file already closed"}
-{"time":"2026-07-18T14:23:43.267466281+02:00","level":"INFO","msg":"Output goroutine exiting"}
