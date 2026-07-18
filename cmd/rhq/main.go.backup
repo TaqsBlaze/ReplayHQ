@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"time"
+	"net"
 
 	"github.com/spf13/cobra"
 
@@ -96,20 +96,6 @@ during its execution for later replay and analysis.`,
 			}
 			// Ensure the store is closed when we're done.
 			defer store.Close()
-			// Set up logging to a file inside the trace directory to avoid interfering with command output.
-			traceDir := filepath.Join(cfg.DataDir, traceID)
-			logFile, err := os.OpenFile(filepath.Join(traceDir, "replayhq.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-			var logWriter io.Writer
-			if err != nil {
-				// If we cannot create log file, discard logs to avoid breaking the command.
-				logWriter = io.Discard
-			} else {
-				logWriter = logFile
-				// Ensure the log file is closed at the end.
-				defer logFile.Close()
-			}
-			// Override the default logger to write to our log writer (discard or file).
-			logger.SetDefault(slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{Level: slog.LevelInfo})))
 			// Create a recorder that writes output to stdout
 			recorder := recorder.NewRecorder(launcher.NewLauncher(), store, os.Stdout)
 			// Launch the process and start recording
