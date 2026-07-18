@@ -3,7 +3,6 @@ package timeline
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"replayhq/internal/events"
 )
