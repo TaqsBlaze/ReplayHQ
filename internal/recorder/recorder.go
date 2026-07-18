@@ -33,12 +33,21 @@ func NewRecorder(launcher *launcher.Launcher, store storage.Store, outputWriter 
 	if outputWriter == nil {
 		outputWriter = io.Discard
 	}
-	return &Recorder{
+	r := &Recorder{
 		launcher:    launcher,
 		store:       store,
 		eventCh:     make(chan *events.Event, 100),
 		outputWriter: outputWriter,
 	}
+	// Start a goroutine to consume events and store them.
+	go func() {
+		for event := range r.eventCh {
+			if err := r.store.AppendEvent(event); err != nil {
+				logger.Error("Failed to append event to store", "error", err)
+			}
+		}
+	}()
+	return r
 }
 
 // RecordEvent sends an event to the event channel.
@@ -83,6 +92,11 @@ func (r *Recorder) Start(ctx context.Context) error {
 		// Stop signal forwarding to avoid sending signals to a reused PID.
 		signal.Stop(sigCh)
 		close(sigCh)
+
+		// Close the PTY master to cause the stdin and stdout copiers to exit.
+		if err := r.proc.CloseMaster(); err != nil {
+			logger.Error("Error closing process master", "error", err)
+		}
 
 		// Stop the file system watcher.
 		r.watcher.Close()
