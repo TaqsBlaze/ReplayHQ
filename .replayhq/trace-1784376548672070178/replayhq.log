@@ -1,0 +1,18 @@
+{"time":"2026-07-18T14:09:08.676437045+02:00","level":"INFO","msg":"Event forwarding goroutine started"}
+{"time":"2026-07-18T14:09:08.677273476+02:00","level":"INFO","msg":"Forwarding loop iteration"}
+{"time":"2026-07-18T14:09:08.677294601+02:00","level":"INFO","msg":"About to call AppendEvent"}
+{"time":"2026-07-18T14:09:08.67730127+02:00","level":"INFO","msg":"Appending event to store","type":"ProcessStarted"}
+{"time":"2026-07-18T14:09:08.67815065+02:00","level":"INFO","msg":"Stdin copy goroutine exiting"}
+{"time":"2026-07-18T14:09:08.680925918+02:00","level":"INFO","msg":"Sent output event","length":7}
+{"time":"2026-07-18T14:09:08.681324293+02:00","level":"ERROR","msg":"Error reading from process","error":"read /dev/ptmx: input/output error"}
+{"time":"2026-07-18T14:09:08.681352429+02:00","level":"INFO","msg":"Output goroutine exiting"}
+{"time":"2026-07-18T14:09:08.681825818+02:00","level":"INFO","msg":"Successfully appended event to store","type":"ProcessStarted"}
+{"time":"2026-07-18T14:09:08.681847332+02:00","level":"INFO","msg":"After processing event"}
+{"time":"2026-07-18T14:09:08.681851859+02:00","level":"INFO","msg":"About to end case block"}
+{"time":"2026-07-18T14:09:08.681855582+02:00","level":"INFO","msg":"Forwarding loop iteration"}
+{"time":"2026-07-18T14:09:08.68186167+02:00","level":"INFO","msg":"About to call AppendEvent"}
+{"time":"2026-07-18T14:09:08.681866235+02:00","level":"INFO","msg":"Appending event to store","type":"Output"}
+{"time":"2026-07-18T14:09:08.686062614+02:00","level":"INFO","msg":"Successfully appended event to store","type":"Output"}
+{"time":"2026-07-18T14:09:08.686108788+02:00","level":"INFO","msg":"After processing event"}
+{"time":"2026-07-18T14:09:08.68611375+02:00","level":"INFO","msg":"About to end case block"}
+{"time":"2026-07-18T14:09:08.686117922+02:00","level":"INFO","msg":"Forwarding loop iteration"}

@@ -1,0 +1,3 @@
+{"time":"2026-07-18T14:12:52.999759664+02:00","level":"INFO","msg":"Stdin copy goroutine exiting"}
+{"time":"2026-07-18T14:12:53.008035881+02:00","level":"INFO","msg":"Sent output event","length":7}
+{"time":"2026-07-18T14:12:53.008172975+02:00","level":"INFO","msg":"Sent output event","length":7}

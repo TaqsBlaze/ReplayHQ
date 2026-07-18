@@ -3,6 +3,9 @@ package recorder
 import (
 	"context"
 	"io"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"replayhq/internal/events"
@@ -46,39 +49,24 @@ func (r *Recorder) RecordEvent(ev *events.Event) {
 // Start begins recording events. It blocks until the context is cancelled.
 // It expects that Launch has been called to start a process.
 func (r *Recorder) Start(ctx context.Context) error {
-	// We'll run a goroutine to forward events from eventCh to the store.
-	go func() {
-		logger.Info("Event forwarding goroutine started")
-		for {
-			logger.Info("Forwarding loop iteration")
-			select {
-			case <-ctx.Done():
-				return
-			case ev, ok := <-r.eventCh:
-				if !ok {
-					// Channel is closed, exit the goroutine.
-					return
-				}
-				// Process the event.
-				logger.Info("About to call AppendEvent")
-				if err := r.store.AppendEvent(ev); err != nil {
-					logger.Error("Failed to append event to store", "error", err)
-				} else {
-					// Process the event.
-					logger.Info("Successfully appended event to store", "type", ev.Type)
-					logger.Info("After processing event")
-					logger.Info("About to end case block")
-				}
-			}
-		}
-	}()
-
 	// Start file system watcher.
 	watcher := filesystem.NewWatcher(".", 0, r.eventCh)
 	if err := watcher.Start(); err != nil {
 		return err
 	}
 	r.watcher = watcher
+
+	// Set up signal forwarding to the child process.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP)
+	go func() {
+		for sig := range sigCh {
+			if r.proc != nil {
+				// Forward the signal to the child process.
+				_ = r.proc.Signal(sig)
+			}
+		}
+	}()
 
 	// Wait for the process to finish.
 	if r.proc != nil {
@@ -92,6 +80,13 @@ func (r *Recorder) Start(ctx context.Context) error {
 		} else {
 			exitCode = state.ExitCode()
 		}
+		// Stop signal forwarding to avoid sending signals to a reused PID.
+		signal.Stop(sigCh)
+		close(sigCh)
+
+		// Stop the file system watcher.
+		r.watcher.Close()
+
 		// Calculate the duration since the process started.
 		duration := time.Since(r.startTime)
 		// Send a process exited event.
@@ -124,6 +119,31 @@ func (r *Recorder) Launch(cmd string, args []string) (*launcher.Process, error) 
 		Duration: 0, // Duration is zero at start.
 		Data:   map[string]any{"cmd": cmd, "args": args},
 	}
+
+	// Start a goroutine to copy data from stdin to the process's pty master (stdin).
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			n, err := os.Stdin.Read(buf)
+			if n > 0 {
+				if _, err := proc.Write(buf[:n]); err != nil {
+					// Ignore write errors? We could log but it might break the pipe.
+					logger.Error("Error writing to process stdin", "error", err)
+				}
+			}
+			if err != nil {
+				if err != io.EOF {
+					logger.Error("Error reading from stdin", "error", err)
+				}
+				// Close the master to signal EOF to the process.
+				if err := proc.CloseMaster(); err != nil {
+					logger.Error("Error closing process master", "error", err)
+				}
+				logger.Info("Stdin copy goroutine exiting")
+				break
+			}
+		}
+	}()
 
 	// Start a goroutine to copy data from the process's pty to an event channel.
 	// We'll read from the process's master and send output events.
