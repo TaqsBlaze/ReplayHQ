@@ -75,3 +75,8 @@ func (p *Process) Signal(sig os.Signal) error {
 func (p *Process) CloseMaster() error {
 	return p.master.Close()
 }
+
+// Master returns the master side of the pty.
+func (p *Process) Master() *os.File {
+	return p.master
+}
