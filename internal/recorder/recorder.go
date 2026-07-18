@@ -8,6 +8,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/creack/pty"
+	"golang.org/x/term"
+
 	"replayhq/internal/events"
 	"replayhq/internal/filesystem"
 	"replayhq/internal/logger"
@@ -67,12 +70,35 @@ func (r *Recorder) Start(ctx context.Context) error {
 
 	// Set up signal forwarding to the child process.
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP, syscall.SIGWINCH)
 	go func() {
 		for sig := range sigCh {
 			if r.proc != nil {
-				// Forward the signal to the child process.
-				_ = r.proc.Signal(sig)
+				switch sig {
+				case syscall.SIGWINCH:
+				 // Handle window size change.
+				 // Get the current window size from the terminal.
+				 var w, h int
+				 var err error
+				 // Try stdin, stdout, stderr in that order.
+				 if _, err = term.GetSize(int(os.Stdin.Fd())); err == nil {
+					 w, h, _ = term.GetSize(int(os.Stdin.Fd()))
+				 } else if _, err = term.GetSize(int(os.Stdout.Fd())); err == nil {
+					 w, h, _ = term.GetSize(int(os.Stdout.Fd()))
+				 } else if _, err = term.GetSize(int(os.Stderr.Fd())); err == nil {
+					 w, h, _ = term.GetSize(int(os.Stderr.Fd()))
+				 }
+				 if err == nil {
+					 // Set the window size on the PTY master.
+					 _ = pty.Setsize(r.proc.master.Fd(), &pty.Winsize{
+						 Rows: uint16(h),
+						 Cols: uint16(w),
+					 })
+				 }
+				default:
+				 // Forward the signal to the child process.
+				 _ = r.proc.Signal(sig)
+				}
 			}
 		}
 	}()
@@ -136,27 +162,42 @@ func (r *Recorder) Launch(cmd string, args []string) (*launcher.Process, error) 
 
 	// Start a goroutine to copy data from stdin to the process's pty master (stdin).
 	go func() {
+		// Save the original terminal state and set raw mode.
+		fd := int(os.Stdin.Fd())
+		oldState, err := term.MakeRaw(fd)
+		if err != nil {
+			logger.Error("Failed to set terminal to raw mode", "error", err)
+			return
+		}
+		// Restore the original state when this goroutine ends.
+		defer func() {
+			if err := term.Restore(fd, oldState); err != nil {
+				logger.Error("Failed to restore terminal", "error", err)
+			}
+		}()
+
 		buf := make([]byte, 1024)
 		for {
 			n, err := os.Stdin.Read(buf)
 			if n > 0 {
 				if _, err := proc.Write(buf[:n]); err != nil {
-					// Ignore write errors? We could log but it might break the pipe.
+					// Write failed, likely because the process exited or PTY is closed.
 					logger.Error("Error writing to process stdin", "error", err)
+					break
 				}
 			}
 			if err != nil {
 				if err != io.EOF {
 					logger.Error("Error reading from stdin", "error", err)
 				}
-				// Close the master to signal EOF to the process.
-				if err := proc.CloseMaster(); err != nil {
-					logger.Error("Error closing process master", "error", err)
-				}
-				logger.Info("Stdin copy goroutine exiting")
 				break
 			}
 		}
+		// Close the master to signal EOF to the process.
+		if err := proc.CloseMaster(); err != nil {
+			logger.Error("Error closing process master", "error", err)
+		}
+		logger.Info("Stdin copy goroutine exiting")
 	}()
 
 	// Start a goroutine to copy data from the process's pty to an event channel.
