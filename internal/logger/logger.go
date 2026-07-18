@@ -29,7 +29,7 @@ func SetDefault(l *slog.Logger) {
 	defaultLogger = l
 }
 
-// Default returns the default logger, initializing it with Info level if necessary.
+// Default returns the default logger, initializing it if necessary.
 func Default() *slog.Logger {
 	if defaultLogger == nil {
 		Init(slog.LevelInfo)

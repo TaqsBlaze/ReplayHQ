@@ -1,3 +1,5 @@
+![Banner](https://raw.githubusercontent.com/TAqsBlaze/ReplayHQ/refs/heads/main/banner/banner.png)
+
 # ReplayHQ: AI Coding Agent Flight Recorder
 
 [![Go Version](https://img.shields.io/badge/go-%3E%3D1.23-00ADD8.svg?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/dl/)
@@ -160,31 +162,31 @@ Following the backend-first approach:
    - Timestamps
    - *Goal: `rhq bash` records session*
 
-3. **Phase 3: Event System** ⏳
+3. **Phase 3: Event System** ✓
    - Event models
    - Event bus
    - Event storage
    - *Goal: Every action produces events*
 
-4. **Phase 4: Trace Storage** ⏳
+4. **Phase 4: Trace Storage** ✓
    - Create trace
    - Save events
    - Load trace
    - *Goal: Generate `session.rhq`*
 
-5. **Phase 5: Filesystem Tracking** ⏳
+5. **Phase 5: Filesystem Tracking** ✓
    - File watcher
    - File changes
    - Patches
    - *Goal: Know exactly what changed during an agent run*
 
-6. **Phase 6: Replay Engine** ⏳
+6. **Phase 6: Replay Engine** ✓
    - Trace loading
    - Timeline reconstruction
    - Replay commands
    - *Goal: Replay a previous session*
 
-7. **Phase 7: HTTP API** ⏳
+7. **Phase 7: HTTP API** ✓
    - REST API (`/runs`, `/runs/:id`, `/events/:id`)
    - WebSocket (`/stream`)
    - *Goal: Power desktop application*
