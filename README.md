@@ -2,8 +2,8 @@
 
 [![Go Version](https://img.shields.io/badge/go-%3E%3D1.23-00ADD8.svg?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](./LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/ReplayQH?style=for-the-badge)](https://goreportcard.com/report/github.com/yourusername/ReplayQH)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge)](https://github.com/yourusername/ReplayQH/graphs/commit-activity)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TAqsBlaze/ReplayHQ?style=for-the-badge)](https://goreportcard.com/report/github.com/TAqsBlaze/ReplayHQ)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge)](https://github.com/TAqsBlaze/ReplayHQ/graphs/commit-activity)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
 
 > **Git tracks code changes. ReplayHQ tracks AI decisions.**
@@ -111,7 +111,7 @@ External Systems
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ReplayQH.git
+git clone https://github.com/TAqsBlaze/ReplayHQ.git
 cd ReplayQH
 
 # Install dependencies
@@ -248,7 +248,7 @@ ReplayHQ is licensed under the MIT License - see the [LICENSE](./LICENSE) file f
 ## Contact
 
 Project Maintainer: [Your Name](https://github.com/yourusername)
-Project Link: [https://github.com/yourusername/ReplayQH](https://github.com/yourusername/ReplayQH)
+Project Link: [https://github.com/TAqsBlaze/ReplayHQ](https://github.com/TAqsBlaze/ReplayHQ)
 
 ## Acknowledgments
 
