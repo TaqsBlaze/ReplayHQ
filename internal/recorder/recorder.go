@@ -76,28 +76,28 @@ func (r *Recorder) Start(ctx context.Context) error {
 			if r.proc != nil {
 				switch sig {
 				case syscall.SIGWINCH:
-				 // Handle window size change.
-				 // Get the current window size from the terminal.
-				 var w, h int
-				 var err error
-				 // Try stdin, stdout, stderr in that order.
-				 if _, err = term.GetSize(int(os.Stdin.Fd())); err == nil {
-					 w, h, _ = term.GetSize(int(os.Stdin.Fd()))
-				 } else if _, err = term.GetSize(int(os.Stdout.Fd())); err == nil {
-					 w, h, _ = term.GetSize(int(os.Stdout.Fd()))
-				 } else if _, err = term.GetSize(int(os.Stderr.Fd())); err == nil {
-					 w, h, _ = term.GetSize(int(os.Stderr.Fd()))
-				 }
-				 if err == nil {
-					 // Set the window size on the PTY master.
-					 _ = pty.Setsize(r.proc.master.Fd(), &pty.Winsize{
-						 Rows: uint16(h),
-						 Cols: uint16(w),
-					 })
-				 }
+					// Handle window size change.
+					// Get the current window size from the terminal.
+					var w, h int
+					var err error
+					// Try stdin, stdout, stderr in that order.
+					if width, height, err := term.GetSize(int(os.Stdin.Fd())); err == nil {
+						w, h = width, height
+					} else if width, height, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
+						w, h = width, height
+					} else if width, height, err := term.GetSize(int(os.Stderr.Fd())); err == nil {
+						w, h = width, height
+					}
+					if err == nil {
+						// Set the window size on the PTY master.
+						_ = pty.Setsize(r.proc.Master(), &pty.Winsize{
+							Rows: uint16(h),
+							Cols: uint16(w),
+						})
+					}
 				default:
-				 // Forward the signal to the child process.
-				 _ = r.proc.Signal(sig)
+					// Forward the signal to the child process.
+					_ = r.proc.Signal(sig)
 				}
 			}
 		}

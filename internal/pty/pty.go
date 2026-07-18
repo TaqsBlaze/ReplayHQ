@@ -22,14 +22,14 @@ func NewManager() *Manager {
 // The caller is responsible for closing the master file descriptor when done.
 func (m *Manager) StartCommand(cmd *exec.Cmd) (*os.File, *os.Process, error) {
 	// Start the command with a pseudoterminal.
-	// pty.Start returns the master side of the pty and starts the command.
+// pty.Start returns the master side of the pty and starts the command.
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Put the slave side of the PTY into raw mode.
-	if err := term.MakeRaw(int(ptmx.Fd())); err != nil {
+	if _, err := term.MakeRaw(int(ptmx.Fd())); err != nil {
 		ptmx.Close()
 		return nil, nil, err
 	}
@@ -46,7 +46,7 @@ func (m *Manager) StartCommand(cmd *exec.Cmd) (*os.File, *os.Process, error) {
 	}
 	if fd != 0 {
 		if w, h, err := term.GetSize(int(fd)); err == nil {
-			_ = pty.Setsize(ptmx.Fd(), &pty.Winsize{
+			_ = pty.Setsize(ptmx, &pty.Winsize{
 				Rows: uint16(h),
 				Cols: uint16(w),
 			})
@@ -60,6 +60,6 @@ func (m *Manager) StartCommand(cmd *exec.Cmd) (*os.File, *os.Process, error) {
 
 // isTerminal returns true if the given file descriptor is a terminal.
 func isTerminal(fd int) bool {
-	_, err := term.GetSize(fd)
+	_, _, err := term.GetSize(fd)
 	return err == nil
 }
