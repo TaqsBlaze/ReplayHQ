@@ -1,6 +1,7 @@
-echo "Building..."
-go build -o rhq cmd/rhq/main.go
-
 echo "Insalling..."
-mv rhq ~/go/bin
-echo "Done"
+go install ./cmd/rhq
+
+echo "Cleaning up.."
+go clean -cache -testcache -modcache
+
+echo "Done..."
