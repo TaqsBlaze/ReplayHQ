@@ -1,35 +1,31 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-
-import Home from './pages/Home'
-import About from './pages/About'
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import AppLayout from './components/layout/AppLayout';
+import Home from './pages/Home';
+import About from './pages/About';
+import Runs from './pages/Runs';
+import Events from './pages/Events';
+import Files from './pages/Files';
+import Metrics from './pages/Metrics';
+import Plugins from './pages/Plugins';
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-        <header className="bg-white dark:bg-gray-800 shadow-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <nav className="flex space-x-6">
-              <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 font-medium">
-                Home
-              </Link>
-              <Link to="/about" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 font-medium">
-                About
-              </Link>
-            </nav>
-          </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-          </Routes>
-        </main>
-      </div>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/runs" element={<Runs />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/files" element={<Files />} />
+          <Route path="/metrics" element={<Metrics />} />
+          <Route path="/plugins" element={<Plugins />} />
+          {/* Add more routes as needed */}
+        </Routes>
+      </AppLayout>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
