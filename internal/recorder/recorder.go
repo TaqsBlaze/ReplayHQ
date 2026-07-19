@@ -64,6 +64,18 @@ func (r *Recorder) Start(ctx context.Context) error {
 	// Start file system watcher.
 	watcher := filesystem.NewWatcher(".", 0, r.eventCh)
 	if err := watcher.Start(); err != nil {
+		// If we can't start the watcher, we still need to clean up if the process is running
+		if r.proc != nil {
+			// Wait for process to finish
+			if _, errWait := r.proc.Wait(); errWait != nil {
+				// Log but don't return - we want to return the original error
+				logger.Error("Error waiting for process", "error", errWait)
+			}
+			// Close master PTY to stop copiers
+			if errClose := r.proc.CloseMaster(); errClose != nil {
+				logger.Error("Error closing process master", "error", errClose)
+			}
+		}
 		return err
 	}
 	r.watcher = watcher
@@ -71,6 +83,11 @@ func (r *Recorder) Start(ctx context.Context) error {
 	// Set up signal forwarding to the child process.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTSTP, syscall.SIGWINCH)
+	defer func() {
+		// Stop signal forwarding to avoid sending signals to a reused PID.
+		signal.Stop(sigCh)
+		close(sigCh)
+	}()
 	go func() {
 		for sig := range sigCh {
 			if r.proc != nil {
@@ -78,21 +95,22 @@ func (r *Recorder) Start(ctx context.Context) error {
 				case syscall.SIGWINCH:
 					// Handle window size change.
 					// Get the current window size from the terminal.
-					var w, h int
+					var width, height int
 					var err error
 					// Try stdin, stdout, stderr in that order.
-					if width, height, err := term.GetSize(int(os.Stdin.Fd())); err == nil {
-						w, h = width, height
-					} else if width, height, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
-						w, h = width, height
-					} else if width, height, err := term.GetSize(int(os.Stderr.Fd())); err == nil {
-						w, h = width, height
+					if width, height, err = term.GetSize(int(os.Stdin.Fd())); err == nil {
+						// Success, use these values
+					} else if width, height, err = term.GetSize(int(os.Stdout.Fd())); err == nil {
+						// Success, use these values
+					} else if width, height, err = term.GetSize(int(os.Stderr.Fd())); err == nil {
+						// Success, use these values
 					}
+					// If all failed, err will be set from the last call
 					if err == nil {
 						// Set the window size on the PTY master.
 						_ = pty.Setsize(r.proc.Master(), &pty.Winsize{
-							Rows: uint16(h),
-							Cols: uint16(w),
+							Rows: uint16(height),
+							Cols: uint16(width),
 						})
 					}
 				default:
@@ -115,13 +133,15 @@ func (r *Recorder) Start(ctx context.Context) error {
 		} else {
 			exitCode = state.ExitCode()
 		}
-		// Stop signal forwarding to avoid sending signals to a reused PID.
-		signal.Stop(sigCh)
-		close(sigCh)
-
+		// Note: signal handler goroutine will exit when sigCh is closed (by defer)
 		// Close the PTY master to cause the stdin and stdout copiers to exit.
 		if err := r.proc.CloseMaster(); err != nil {
 			logger.Error("Error closing process master", "error", err)
+		}
+
+		// Close stdin to unblock any blocking reads in the stdin copying goroutine.
+		if err := syscall.Close(int(os.Stdin.Fd())); err != nil {
+			logger.Error("Error closing stdin", "error", err)
 		}
 
 		// Stop the file system watcher.
@@ -247,6 +267,10 @@ func (r *Recorder) Stop() error {
 	}
 	if r.watcher != nil {
 		_ = r.watcher.Close()
+	}
+	// Close stdin to unblock any blocking reads in the stdin copying goroutine.
+	if err := syscall.Close(int(os.Stdin.Fd())); err != nil {
+		logger.Error("Error closing stdin", "error", err)
 	}
 	close(r.eventCh)
 	return nil
