@@ -1,5 +1,6 @@
 import React from 'react';
 import { Event } from '../types';
+import { motion } from 'framer-motion';
 
 interface EventViewerProps {
   event: Event | null;
@@ -8,9 +9,15 @@ interface EventViewerProps {
 const EventViewer: React.FC<EventViewerProps> = ({ event }) => {
   if (!event) {
     return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="text-center py-8 text-gray-500 dark:text-gray-400"
+      >
         Select an event to view details
-      </div>
+      </motion.div>
     );
   }
 
@@ -61,109 +68,216 @@ const EventViewer: React.FC<EventViewerProps> = ({ event }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
       {/* Event header */}
-      <div className="flex items-center space-x-4 p-4 rounded-lg">
-        <div className={`w-10 h-10 flex-shrink-0 rounded-full ${getEventTypeClass(event.type)} flex items-center justify-center`}>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="flex items-center space-x-4 p-4 rounded-lg"
+      >
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`w-10 h-10 flex-shrink-0 rounded-full ${getEventTypeClass(event.type)} flex items-center justify-center`}>
           <span className="text-xs font-mono">{event.type.charAt(0)}</span>
-        </div>
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+        </motion.div>
+        <motion.div>
+          <motion.h2
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="font-semibold text-gray-900 dark:text-gray-100"
+          >
             {getEventTypeLabel(event.type)}
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          </motion.h2>
+          <motion.p
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="text-sm text-gray-500 dark:text-gray-400"
+          >
             {formatTimestamp(event.timestamp)}
-          </p>
-        </div>
-      </div>
+          </motion.p>
+        </motion.div>
+      </motion.div>
 
       {/* Event details */}
-      <div className="space-y-4">
-        <div className="bg-white dark:bg-gray-800/50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Event Data</h3>
-          <div className="space-y-2">
-            {Object.entries(event.data).map(([key, value]) => (
-              <div key={key} className="space-y-1">
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-4"
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-gray-800/50 rounded-lg p-4"
+        >
+          <motion.h3
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="font-medium text-gray-900 dark:text-gray-100 mb-3"
+          >
+            Event Data
+          </motion.h3>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="space-y-2"
+          >
+            {Object.entries(event.data).map(([key, value], index) => (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="space-y-1"
+              >
+                <motion.label
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="block text-sm font-medium text-gray-600 dark:text-gray-400"
+                >
                   {String(key).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </label>
-                <div className="ml-2">
+                </motion.label>
+                <motion.div
+                  className="ml-2"
+                >
                   {typeof value === 'object' ? (
-                    <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded">
-                      <pre className="text-xs whitespace-pre-wrap break-all">
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded"
+                    >
+                      <motion.pre
+                        className="text-xs whitespace-pre-wrap break-all"
+                      >
                         {JSON.stringify(value, null, 2)}
-                      </pre>
-                    </div>
+                      </motion.pre>
+                    </motion.div>
                   ) : (
-                    <div className="break-all">
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="break-all"
+                    >
                       {String(value)}
-                    </div>
+                    </motion.div>
                   )}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Raw JSON view */}
-        <div className="bg-white dark:bg-gray-800/50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Raw JSON</h3>
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded">
-            <pre className="text-xs whitespace-pre-wrap break-all">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-gray-800/50 rounded-lg p-4"
+        >
+          <motion.h3
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="font-medium text-gray-900 dark:text-gray-100 mb-3"
+          >
+            Raw JSON
+          </motion.h3>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded"
+          >
+            <motion.pre
+              className="text-xs whitespace-pre-wrap break-all"
+            >
               {JSON.stringify({
                 id: event.id,
                 type: event.type,
                 timestamp: event.timestamp,
                 data: event.data
               }, null, 2)}
-            </pre>
-          </div>
-        </div>
-      </div>
+            </motion.pre>
+          </motion.div>
+        </motion.div>
 
-      {/* Related actions */}
-      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Related Actions</h3>
-        <div className="space-y-3">
-          <button
-            onClick={() => {
-              // In a real app, this would jump to this point in the replay
-              alert('Jump to this point in replay not implemented');
-            }}
-            className="w-full flex items-center justify-between px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+        {/* Related actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"
+        >
+          <motion.h3
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="font-medium text-gray-900 dark:text-gray-100 mb-4"
           >
-            <span>Jump to this point in replay</span>
-            <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-            </svg>
-          </button>
-          <button
-            onClick={() => {
-              // In a real app, this would show related events
-              alert('Show related events not implemented');
-            }}
-            className="w-full flex items-center justify-between px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm rounded"
+            Related Actions
+          </motion.h3>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-3"
           >
-            <span>Show related events</span>
-            <svg className="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H3m8 4H3m-9 8h18M5 8h14M5 12h14M5 16h14"/>
-            </svg>
-          </button>
-          <button
-            onClick={() => {
-              // In a real app, this would allow adding notes/bookmarks
-              alert('Add note/bookmark not implemented');
-            }}
-            className="w-full flex items-center justify-between px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600"
-          >
-            <span>Add note/bookmark</span>
-            <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7 20h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                // In a real app, this would jump to this point in the replay
+                alert('Jump to this point in replay not implemented');
+              }}
+              className="w-full flex items-center justify-between px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+            >
+              <span>Jump to this point in replay</span>
+              <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+              </svg>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                // In a real app, this would show related events
+                alert('Show related events not implemented');
+              }}
+              className="w-full flex items-center justify-between px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-sm rounded"
+            >
+              <span>Show related events</span>
+              <svg className="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H3m8 4H3m-9 8h18M5 8h14M5 12h14M5 16h14"/>
+              </svg>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                // In a real app, this would allow adding notes/bookmarks
+                alert('Add note/bookmark not implemented');
+              }}
+              className="w-full flex items-center justify-between px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+            >
+              <span>Add note/bookmark</span>
+              <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7 20h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2-2v12a2 2 0 002 2z"/>
+              </svg>
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 };
 

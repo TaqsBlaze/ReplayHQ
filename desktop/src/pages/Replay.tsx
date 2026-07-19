@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { Run } from '../types';
+import { motion } from 'framer-motion';
 import ReplayVisualizer from '../components/replay/ReplayVisualizer';
 import EventViewer from '../components/replay/EventViewer';
 
@@ -15,7 +16,7 @@ const Replay: React.FC = () => {
   useEffect(() => {
     const loadReplayData = async () => {
       if (!id) return;
-      
+
       try {
         setLoading(true);
         // In a real app, we'd fetch the specific run and its events
@@ -24,7 +25,7 @@ const Replay: React.FC = () => {
           // This would be a real API endpoint
           fetch(`/api/runs/${id}/events`).then(res => res.json())
         ]);
-        
+
         setRun(runData);
         setEvents(eventsData || []);
       } catch (err) {
@@ -39,7 +40,7 @@ const Replay: React.FC = () => {
           duration: 300,
           status: 'completed'
         });
-        
+
         // Generate mock events
         const mockEvents = Array.from({ length: 20 }, (_, i) => ({
           id: `${i}`,
@@ -63,84 +64,191 @@ const Replay: React.FC = () => {
 
   if (loading || !run) {
     return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        <p className="mt-4 text-gray-500">Loading replay...</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col items-center justify-center h-96"
+      >
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"
+        ></motion.div>
+        <motion.p
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="mt-4 text-gray-500"
+        >
+          Loading replay...
+        </motion.p>
+      </motion.div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900"
+    >
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-md px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white dark:bg-gray-800 shadow-md px-6 py-4"
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="flex items-center justify-between"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="flex items-center space-x-4"
+          >
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm"
+            >
               ▶️
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            </motion.div>
+            <motion.div>
+              <motion.h1
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="text-xl font-semibold text-gray-900 dark:text-gray-100"
+              >
                 Replay: {run.name}
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              </motion.h1>
+              <motion.p
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="text-sm text-gray-500 dark:text-gray-400"
+              >
                 {run.agent} • {new Date(run.startTime).toLocaleDateString()} {new Date(run.startTime).toLocaleTimeString()}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4 text-sm">
-            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full dark:bg-green-900/20 dark:text-green-200">
+              </motion.p>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="flex items-center space-x-4 text-sm"
+          >
+            <motion.span
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="px-3 py-1 bg-green-100 text-green-800 rounded-full dark:bg-green-900/20 dark:text-green-200"
+            >
               {run.status}
-            </span>
-            <span>Duration: {(run.duration || 0).toFixed(1)}s</span>
-          </div>
-        </div>
-      </div>
+            </motion.span>
+            <motion.span
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Duration: {(run.duration || 0).toFixed(1)}s
+            </motion.span>
+          </motion.div>
+        </motion.div>
+      </motion.div>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="flex-1 flex overflow-hidden"
+      >
         {/* Visualization panel */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <ReplayVisualizer 
-            events={events} 
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="flex-1 flex flex-col overflow-hidden"
+        >
+          <ReplayVisualizer
+            events={events}
             selectedEvent={selectedEvent}
             onEventSelect={setSelectedEvent}
           />
-        </div>
-        
+        </motion.div>
+
         {/* Detail panel */}
-        <div className="w-64 border-l border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden bg-white dark:bg-gray-800">
-          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6 }}
+          className="w-64 border-l border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden bg-white dark:bg-gray-800"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700"
+          >
+            <motion.h2
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="text-lg font-semibold text-gray-900 dark:text-gray-100"
+            >
               Event Details
-            </h2>
-            <button
+            </motion.h2>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedEvent(null)}
               className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Close details"
             >
-              <svg className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" 
+              <svg className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M6 18L18 6M6 6l12 12"/>
               </svg>
-            </button>
-          </div>
-          
+            </motion.button>
+          </motion.div>
+
           {selectedEvent ? (
-            <div className="flex-1 overflow-y-auto p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 overflow-y-auto p-4"
+            >
               <EventViewer event={selectedEvent} />
-            </div>
+            </motion.div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center py-12">
-              <p className="text-gray-500 dark:text-gray-400 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col items-center justify-center py-12"
+            >
+              <motion.p
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="text-gray-500 dark:text-gray-400 text-center"
+              >
                 Select an event from the timeline to view details
-              </p>
-            </div>
+              </motion.p>
+            </motion.div>
           )}
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 };
 

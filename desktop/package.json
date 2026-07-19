@@ -3,11 +3,46 @@
   "version": "0.1.0",
   "private": true,
   "description": "ReplayHQ Desktop Client",
-  "main": "main.ts",
+  "homepage": "https://github.com/TaqsBlaze/ReplayQH",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "electron-builder",
+    "electron:pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.replayhq.desktop",
+    "productName": "ReplayHQ Desktop",
+    "copyright": "Copyright © 2026 ReplayHQ",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "public/icon.png",
+      "maintainer": "Tanaka Chinengundu <tanakah30@gmail.com>",
+      "vendor": "OpenProject"
+    },
+    "win": {
+      "target": "NSIS",
+      "icon": "public/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon.icns"
+    }
   },
   "keywords": [
     "replayhq",
@@ -16,13 +51,17 @@
     "react",
     "typescript"
   ],
-  "author": "ReplayHQ Team",
+  "author": {
+    "name": "ReplayHQ Team",
+    "email": "team@replayhq.dev"
+  },
   "license": "MIT",
   "dependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.7.0",
+    "framer-motion": "^12.42.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
@@ -31,7 +70,11 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.5.4",
+    "concurrently": "^10.0.3",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
     "postcss": "^8.5.20",
-    "tailwindcss": "^3.4.0"
+    "tailwindcss": "^3.4.0",
+    "wait-on": "^9.0.10"
   }
 }
