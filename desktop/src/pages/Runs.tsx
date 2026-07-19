@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Run } from '../types';
 
 const Runs: React.FC = () => {
+  const navigate = useNavigate();
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ const Runs: React.FC = () => {
     // Optionally, set up an interval to refresh every 10 seconds
     const interval = setInterval(fetchRuns, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [navigate]);
 
   if (loading) {
     return (
@@ -52,6 +54,23 @@ const Runs: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Runs
+        </h2>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => {
+              // Refresh manually
+              window.location.reload();
+            }}
+            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={() => navigate('/diff')}
+            className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+          >
+            Diff Viewer
+          </button>
         </div>
       </div>
 
@@ -62,7 +81,11 @@ const Runs: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {runs.map((run) => (
-            <div key={run.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <div 
+              key={run.id} 
+              onClick={() => navigate(`/replay/${run.id}`)}
+              className="cursor-pointer border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-medium text-gray-900 dark:text-gray-100">
@@ -71,8 +94,11 @@ const Runs: React.FC = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Agent: {run.agent} | Status: {run.status}
                   </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    ID: {run.id.substring(0, 8)}...
+                  </p>
                 </div>
-                <div className="text-right">
+                <div className="text-right space-y-1">
                   <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {new Date(run.startTime).toLocaleTimeString()} -
                     {new Date(run.endTime).toLocaleTimeString()}
@@ -84,16 +110,18 @@ const Runs: React.FC = () => {
               </div>
               <div className="mt-3 flex space-x-3">
                 <button
-                  onClick={() => {
-                    // Navigate to the run detail page (we don't have it yet, but we can use a placeholder)
-                    alert(`Viewing run ${run.id}`);
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the row click
+                    // Navigate to the run detail page (we don't have it yet, but we can use the replay)
+                    navigate(`/replay/${run.id}`);
                   }}
                   className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
                 >
-                  View
+                  Replay
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the row click
                     if (window.confirm(`Delete run ${run.id}?`)) {
                       // TODO: implement delete
                       alert('Delete not implemented yet');

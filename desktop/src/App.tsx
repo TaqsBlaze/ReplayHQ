@@ -8,6 +8,8 @@ import Events from './pages/Events';
 import Files from './pages/Files';
 import Metrics from './pages/Metrics';
 import Plugins from './pages/Plugins';
+import Replay from './pages/Replay';
+import DiffViewerPage from './pages/DiffViewer';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
           <Route path="/files" element={<Files />} />
           <Route path="/metrics" element={<Metrics />} />
           <Route path="/plugins" element={<Plugins />} />
+          <Route path="/replay/:id" element={<Replay />} />
+          <Route path="/diff" element={<DiffViewerPage />} />
           {/* Add more routes as needed */}
         </Routes>
       </AppLayout>

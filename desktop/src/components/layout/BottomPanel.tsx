@@ -24,7 +24,7 @@ const BottomPanel: React.FC = () => {
         <div className="p-4">
           <div className="space-y-2">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              > rhq run claude --prompt "Hello, world!"
+                &gt; rhq run claude --prompt "Hello, world!"
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               [INFO] Starting Claude Code session...

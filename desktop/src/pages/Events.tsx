@@ -29,7 +29,7 @@ const Events: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Events
-        </div>
+        </h2>
         <div className="px-3 py-1 rounded-md text-sm font-medium">
           {status === 'connected' ? (
             <span className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200">
