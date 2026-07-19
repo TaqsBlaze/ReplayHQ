@@ -17,12 +17,9 @@ function createWindow () {
   if (process.env.VITE_DEV_SERVER_URL) {
     // Load from Vite dev server
     win.loadURL(process.env.VITE_DEV_SERVER_URL)
-  } else if (app.isPackaged) {
-    // Production: load from local files
-    win.loadFile(path.join(__dirname, '../dist/index.html'))
   } else {
-    // Development: load from Vite dev server (fallback)
-    win.loadURL('http://localhost:3000')
+    // Production / packaged: load from local files
+    win.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
   // Open DevTools in development
