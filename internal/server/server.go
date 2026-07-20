@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +24,7 @@ type Server struct {
 	baseDir  string
 	httpSrv  *http.Server
 	upgrader websocket.Upgrader
+	sessions *sessionManager
 }
 
 // RunSummary is the lightweight run record returned by /runs.
@@ -45,6 +47,17 @@ type RunDetail struct {
 	Metrics  any    `json:"metrics"`
 }
 
+// SessionStatus is the JSON representation of a live session.
+type SessionStatus struct {
+	ID        string `json:"id"`
+	Cmd       string `json:"cmd"`
+	Args      []string `json:"args"`
+	Status    string `json:"status"` // "running" | "exited" | "unknown"
+	StartedAt string `json:"startedAt"`
+	EndedAt   string `json:"endedAt,omitempty"`
+	ExitCode  int32  `json:"exitCode"`
+}
+
 // NewServer creates a new Server instance.
 func NewServer(addr, baseDir string) *Server {
 	s := &Server{
@@ -55,6 +68,7 @@ func NewServer(addr, baseDir string) *Server {
 				return true
 			},
 		},
+		sessions: newSessionManager(baseDir),
 	}
 	s.setupRoutes()
 	return s
@@ -68,6 +82,10 @@ func (s *Server) setupRoutes() {
 	r.HandleFunc("/runs/{id}/events", s.handleEventsByID).Methods("GET")
 	r.HandleFunc("/runs/{id}/files", s.handleRunFiles).Methods("GET")
 	r.HandleFunc("/stream", s.handleStream).Methods("GET")
+	r.HandleFunc("/sessions", s.handleCreateSession).Methods("POST")
+	r.HandleFunc("/sessions/{id}", s.handleGetSession).Methods("GET")
+	r.HandleFunc("/sessions/{id}/kill", s.handleKillSession).Methods("POST")
+	r.HandleFunc("/terminal", s.handleTerminal).Methods("GET")
 	r.HandleFunc("/health", s.handleHealth).Methods("GET")
 	s.httpSrv = &http.Server{
 		Addr:    s.addr,
@@ -283,7 +301,141 @@ func (s *Server) loadRun(traceID string) (RunSummary, []*events.Event) {
 	return summary, evs
 }
 
-// readJSONFile reads a JSON file from disk and returns the parsed value.
+// handleCreateSession creates a new live PTY session.
+// Expected JSON body: { "cmd": "...", "args": [...], "cols": 80, "rows": 24 }
+// Returns: { "id": "...", "wsPath": "/terminal?id=..." }
+func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
+	var req SessionStartRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Cmd == "" {
+		http.Error(w, "missing cmd", http.StatusBadRequest)
+		return
+	}
+	if req.Cols <= 0 {
+		req.Cols = 80
+	}
+	if req.Rows <= 0 {
+		req.Rows = 24
+	}
+	id := fmt.Sprintf("session-%d", time.Now().UnixNano())
+	sess := &Session{
+		ID:        id,
+		Cmd:       req.Cmd,
+		Args:      req.Args,
+		StartedAt: time.Now(),
+		baseDir:   s.baseDir,
+		status:    "running",
+		clients:   make(map[*sessionClient]struct{}),
+	}
+	if err := sess.Start(req.Cols, req.Rows); err != nil {
+		http.Error(w, "failed to start session: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.sessions.add(sess)
+	resp := SessionStartResponse{
+		ID:     id,
+		WSPath: fmt.Sprintf("/terminal?id=%s", id),
+	}
+	writeJSON(w, resp)
+}
+
+// handleGetSession returns the status of a live session.
+func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	sess, ok := s.sessions.get(id)
+	if !ok {
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+	status, started, ended, exitCode := sess.Status()
+	resp := SessionStatus{
+		ID:        id,
+		Cmd:       sess.Cmd,
+		Args:      sess.Args,
+		Status:    status,
+		StartedAt: started.Format(time.RFC3339),
+		EndedAt:   ended.Format(time.RFC3339),
+		ExitCode:  int32(exitCode),
+	}
+	writeJSON(w, resp)
+}
+
+// handleKillSession attempts to terminate a live session.
+func (s *Server) handleKillSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	sess, ok := s.sessions.get(id)
+	if !ok {
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+	sess.Kill()
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleTerminal upgrades to a WebSocket and proxies PTY I/O.
+func (s *Server) handleTerminal(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "missing id query parameter", http.StatusBadRequest)
+		return
+	}
+	sess, ok := s.sessions.get(id)
+	if !ok {
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+	conn, err := s.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "failed to upgrade to websocket: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	client, outChan := sess.Attach()
+	defer sess.Detach(client)
+
+	// Pump from PTY to websocket
+	go func() {
+		for msg := range outChan {
+			if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				return
+			}
+		}
+	}()
+
+	// Pump from websocket to PTY (stdin/resize)
+	for {
+		mt, msg, err := conn.ReadMessage()
+		if err != nil {
+			break
+		}
+		if mt != websocket.TextMessage {
+			continue
+		}
+		var frame wsFrame
+		if err := json.Unmarshal(msg, &frame); err != nil {
+			continue
+		}
+		switch frame.Type {
+		case "stdin":
+			if _, err := sess.Write([]byte(frame.Data)); err != nil {
+				// Send error back? For now just break.
+				break
+			}
+		case "resize":
+			if err := sess.Resize(frame.Cols, frame.Rows); err != nil {
+				// ignore
+			}
+		}
+	}
+}
+
+// ... rest of file ...
 // Returns nil if the file is missing or cannot be parsed.
 func readJSONFile(path string) any {
 	data, err := os.ReadFile(path)

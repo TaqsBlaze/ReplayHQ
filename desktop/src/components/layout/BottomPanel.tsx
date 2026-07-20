@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useActivity } from "../../services/websocket";
 import { formatTime } from "../../services/api";
+import TerminalPanel from "./TerminalPanel";
 
 type Tab = "backend" | "logs" | "websocket" | "terminal";
 
@@ -37,7 +38,7 @@ const BottomPanel: React.FC = () => {
         {tab === "backend" && <BackendTab />}
         {tab === "logs" && <LogsTab />}
         {tab === "websocket" && <WebSocketTab />}
-        {tab === "terminal" && <TerminalTab />}
+        {tab === "terminal" && <TerminalPanel />}
       </div>
     </section>
   );
@@ -102,23 +103,6 @@ const WebSocketTab: React.FC = () => {
   );
 };
 
-const TerminalTab: React.FC = () => {
-  return (
-    <div className="h-full mono text-[12px] text-text p-2">
-      <div className="text-muted">$ rhq — ReplayHQ CLI</div>
-      <div className="text-muted-2 mt-1">
-        The terminal is a placeholder. Run <span className="text-accent">rhq claude</span> in your host shell to record a session.
-      </div>
-      <div className="mt-2 flex items-center gap-1">
-        <span className="text-accent">rhq@replayhq</span>
-        <span className="text-muted">:</span>
-        <span className="text-accent-dim">~</span>
-        <span className="text-muted">$</span>
-        <span className="ml-1 inline-block w-1.5 h-3.5 bg-text align-middle" />
-      </div>
-    </div>
-  );
-};
 
 interface LineProps {
   text: string;

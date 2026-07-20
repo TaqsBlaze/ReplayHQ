@@ -44,6 +44,29 @@ export const api = {
 
   getRunFiles: (id: string) =>
     request<string[]>(`/runs/${encodeURIComponent(id)}/files`),
+
+  startSession: (cmd: string, args: string[], cols: number, rows: number) =>
+    request<{ id: string; wsPath: string }>("/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cmd, args, cols, rows }),
+    }),
+
+  killSession: (id: string) =>
+    request<void>(`/sessions/${encodeURIComponent(id)}`, {
+      method: "POST",
+    }),
+
+  getSession: (id: string) =>
+    request<{
+      id: string;
+      cmd: string;
+      args: string[];
+      status: string;
+      startedAt: string;
+      endedAt?: string;
+      exitCode: number;
+    }>(`/sessions/${encodeURIComponent(id)}`),
 };
 
 export { ApiError };
