@@ -1,23 +1,83 @@
-import { Run } from '../types';
+import type { RHQEvent, Run, RunDetail } from "../types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "http://localhost:8080";
+
+class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { Accept: "application/json" },
+    ...init,
+  });
+  if (!response.ok) {
+    let detail = "";
+    try {
+      detail = await response.text();
+    } catch {
+      // ignore
+    }
+    throw new ApiError(
+      `Request failed (${response.status}): ${detail || path}`,
+      response.status,
+    );
+  }
+  return (await response.json()) as T;
+}
 
 export const api = {
-  getRuns: async (): Promise<Run[]> => {
-    const response = await fetch(`${API_BASE_URL}/runs`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch runs');
-    }
-    return response.json();
-  },
+  baseUrl: API_BASE_URL,
 
-  getRun: async (id: string): Promise<Run> => {
-    const response = await fetch(`${API_BASE_URL}/runs/${id}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch run');
-    }
-    return response.json();
-  },
+  health: () => request<{ status: string; time: string }>("/health"),
 
-  // Add more methods as needed (events, files, metrics, etc.)
+  getRuns: () => request<Run[]>("/runs"),
+
+  getRun: (id: string) => request<RunDetail>(`/runs/${encodeURIComponent(id)}`),
+
+  getRunEvents: (id: string) =>
+    request<RHQEvent[]>(`/runs/${encodeURIComponent(id)}/events`),
+
+  getRunFiles: (id: string) =>
+    request<string[]>(`/runs/${encodeURIComponent(id)}/files`),
 };
+
+export { ApiError };
+
+/** Format a duration in seconds into a compact "1.2s" / "1m 24s" / "1h 12m" string. */
+export function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0s";
+  if (seconds < 1) return `${Math.round(seconds * 1000)}ms`;
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const totalSeconds = Math.floor(seconds);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${secs}s`;
+  return `${secs}s`;
+}
+
+/** Format a timestamp as HH:MM:SS.mmm. */
+export function formatTime(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  const ms = String(d.getMilliseconds()).padStart(3, "0");
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+/** Format a timestamp as a short date+time. */
+export function formatDateTime(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
+}

@@ -1,143 +1,140 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
-import { Run } from '../types';
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { api, formatDateTime, formatDuration } from "../services/api";
+import type { Run } from "../types";
 
 const Runs: React.FC = () => {
-  const navigate = useNavigate();
   const [runs, setRuns] = useState<Run[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRuns = async () => {
+    let cancelled = false;
+    const load = async () => {
       try {
-        setLoading(true);
         const data = await api.getRuns();
-        setRuns(data);
-        setError(null);
+        if (!cancelled) {
+          setRuns(data);
+          setError(null);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setRuns([]);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load runs");
+          setRuns([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-
-    fetchRuns();
-
-    // Optionally, set up an interval to refresh every 10 seconds
-    const interval = setInterval(fetchRuns, 10000);
-    return () => clearInterval(interval);
-  }, [navigate]);
-
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        <p className="mt-2 text-gray-500">Loading runs...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md">
-        <h3 className="text-sm font-medium text-red-800 dark:text-red-100">Error:</h3>
-        <p className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
-      </div>
-    );
-  }
+    load();
+    const id = setInterval(load, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          Runs
-        </h2>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => {
-              // Refresh manually
-              window.location.reload();
-            }}
-            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-          >
-            Refresh
-          </button>
-          <button
-            onClick={() => navigate('/diff')}
-            className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
-          >
-            Diff Viewer
-          </button>
+    <div className="p-6 fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-[18px] font-semibold text-text">Runs</h1>
+          <p className="text-[12px] text-muted mt-0.5">
+            All recorded sessions on this machine.
+          </p>
         </div>
+        <span className="mono text-[11px] text-muted">
+          {runs.length} run{runs.length === 1 ? "" : "s"}
+        </span>
       </div>
 
-      {runs.length === 0 ? (
-        <p className="text-center py-8 text-gray-500 dark:text-gray-400">
-          No runs found.
-        </p>
+      {error && (
+        <div className="mb-4 px-3 py-2 text-[12px] text-error border border-error/40 rounded bg-error/10">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <Skeleton />
+      ) : runs.length === 0 ? (
+        <EmptyState />
       ) : (
-        <div className="space-y-4">
-          {runs.map((run) => (
-            <div 
-              key={run.id} 
-              onClick={() => navigate(`/replay/${run.id}`)}
-              className="cursor-pointer border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                    {run.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Agent: {run.agent} | Status: {run.status}
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    ID: {run.id.substring(0, 8)}...
-                  </p>
-                </div>
-                <div className="text-right space-y-1">
-                  <p className="font-semibold text-gray-900 dark:text-gray-100">
-                    {new Date(run.startTime).toLocaleTimeString()} -
-                    {new Date(run.endTime).toLocaleTimeString()}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {run.duration.toFixed(2)}s
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 flex space-x-3">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering the row click
-                    // Navigate to the run detail page (we don't have it yet, but we can use the replay)
-                    navigate(`/replay/${run.id}`);
-                  }}
-                  className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-                >
-                  Replay
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering the row click
-                    if (window.confirm(`Delete run ${run.id}?`)) {
-                      // TODO: implement delete
-                      alert('Delete not implemented yet');
-                    }
-                  }}
-                  className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="rounded-md bg-surface border border-border overflow-hidden">
+          <div className="grid grid-cols-[1.4fr_0.8fr_0.8fr_0.7fr_0.7fr_0.5fr] gap-2 px-3 py-2 text-[10.5px] uppercase tracking-wide text-muted-2 border-b border-border">
+            <span>Run</span>
+            <span>Agent</span>
+            <span>Status</span>
+            <span>Events</span>
+            <span>Duration</span>
+            <span />
+          </div>
+          <ul className="divide-y divide-border">
+            {runs
+              .slice()
+              .sort((a, b) => (a.startTime < b.startTime ? 1 : -1))
+              .map((r) => (
+                <li key={r.id} className="hover:bg-surface-2">
+                  <Link
+                    to={`/replay/${r.id}`}
+                    className="grid grid-cols-[1.4fr_0.8fr_0.8fr_0.7fr_0.7fr_0.5fr] gap-2 items-center px-3 py-2 text-[12px]"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-text truncate">{r.id}</div>
+                      <div className="text-[10.5px] text-muted-2 mono truncate">
+                        {formatDateTime(r.startTime)}
+                      </div>
+                    </div>
+                    <div className="text-text truncate">{r.agent}</div>
+                    <div>
+                      <StatusPill status={r.status} />
+                    </div>
+                    <div className="mono text-muted">{r.eventCount}</div>
+                    <div className="mono text-muted">{formatDuration(r.duration)}</div>
+                    <div className="text-right text-accent text-[12px]">→</div>
+                  </Link>
+                </li>
+              ))}
+          </ul>
         </div>
       )}
     </div>
   );
 };
+
+const StatusPill: React.FC<{ status: string }> = ({ status }) => {
+  const color =
+    status === "completed"
+      ? "text-success border-success/40"
+      : status === "failed"
+        ? "text-error border-error/40"
+        : status === "running"
+          ? "text-warn border-warn/40"
+          : "text-muted border-border";
+  return (
+    <span
+      className={`mono text-[10.5px] border rounded px-1.5 py-[1px] ${color}`}
+    >
+      {status}
+    </span>
+  );
+};
+
+const Skeleton: React.FC = () => (
+  <div className="rounded-md bg-surface border border-border p-3 text-[12px] text-muted">
+    Loading…
+  </div>
+);
+
+const EmptyState: React.FC = () => (
+  <div className="rounded-md bg-surface border border-border p-6 text-center">
+    <div className="text-[13px] text-text">No runs yet</div>
+    <p className="text-[12px] text-muted mt-1 max-w-md mx-auto">
+      Record your first session by running{" "}
+      <span className="mono text-accent">rhq claude</span> in your shell.
+      Traces land under{" "}
+      <span className="mono text-muted-2">~/.replayhq/</span>.
+    </p>
+  </div>
+);
 
 export default Runs;

@@ -1,34 +1,60 @@
-import React from 'react';
+import React from "react";
+
+interface Plugin {
+  name: string;
+  description: string;
+  status: "available" | "coming soon";
+}
+
+const plugins: Plugin[] = [
+  {
+    name: "Filesystem",
+    description: "Tracks file changes during agent runs (built-in).",
+    status: "available",
+  },
+  {
+    name: "Shell",
+    description: "Captures shell command output and exit codes (built-in).",
+    status: "available",
+  },
+  {
+    name: "Git",
+    description: "Records git operations and repository state.",
+    status: "coming soon",
+  },
+  {
+    name: "MCP",
+    description: "Observes Model Context Protocol traffic.",
+    status: "coming soon",
+  },
+];
 
 const Plugins: React.FC = () => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        Plugins
-      </h2>
-      <p className="text-gray-600 dark:text-gray-300">
-        This page will manage installed plugins and their configurations.
+    <div className="p-6 fade-in">
+      <h1 className="text-[18px] font-semibold text-text">Plugins</h1>
+      <p className="text-[12px] text-muted mt-0.5 mb-4">
+        Internal plugins bundled with the recorder.
       </p>
-      {/* Placeholder for plugin list */}
-      <div className="mt-4 space-y-3">
-        <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100">Filesystem</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Provides file system operations for agents.
-          </p>
-          <button className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
-            Configure
-          </button>
-        </div>
-        <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100">Git</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Git integration for version control.
-          </p>
-          <button className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
-            Configure
-          </button>
-        </div>
+      <div className="rounded-md bg-surface border border-border divide-y divide-border">
+        {plugins.map((p) => (
+          <div key={p.name} className="px-3 py-2.5 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-[12.5px] text-text">{p.name}</div>
+              <div className="text-[11.5px] text-muted">{p.description}</div>
+            </div>
+            <span
+              className={[
+                "mono text-[10.5px] border rounded px-1.5 py-[1px]",
+                p.status === "available"
+                  ? "text-success border-success/40"
+                  : "text-muted border-border",
+              ].join(" ")}
+            >
+              {p.status}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,267 +1,189 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import type { RHQEvent } from "../../types";
+import { formatTime } from "../../services/api";
 
-const ReplayVisualizer: React.FC = () => {
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1); // 1x, 2x, 0.5x, etc.
-  const [events, setEvents] = useState<Array<any>>([]);
-  const animationRef = useRef<number | null>(null);
+interface Props {
+  events: RHQEvent[];
+  selectedEvent: RHQEvent | null;
+  onEventSelect: (e: RHQEvent) => void;
+}
 
-  // Mock data for demonstration - in real app, this would come from API/WebSocket
+const ReplayVisualizer: React.FC<Props> = ({ events, selectedEvent, onEventSelect }) => {
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [position, setPosition] = useState(0); // 0..1
+  const rafRef = useRef<number | null>(null);
+  const lastTickRef = useRef<number>(0);
+
+  const { startMs, endMs } = useMemo(() => {
+    if (events.length === 0) return { startMs: 0, endMs: 1 };
+    const sorted = [...events].sort((a, b) => (a.time < b.time ? -1 : 1));
+    return { startMs: new Date(sorted[0].time).getTime(), endMs: new Date(sorted[sorted.length - 1].time).getTime() };
+  }, [events]);
+
+  const totalMs = Math.max(1, endMs - startMs);
+
   useEffect(() => {
-    // Generate mock events for demo
-    const mockEvents = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      timestamp: i * 1000, // 1 second apart
-      type: i % 3 === 0 ? 'ToolCalled' : i % 3 === 1 ? 'PromptReceived' : 'FileChanged',
-      data: {
-        description: `Event ${i + 1}`,
-        details: `Details for event ${i + 1}`
-      }
-    }));
-    setEvents(mockEvents);
-  }, []);
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    if (!isPlaying) {
-      startAnimation();
-    } else {
-      stopAnimation();
-    }
-  };
-
-  const startAnimation = () => {
-    const step = (timestamp: number) => {
-      if (!animationRef.current) return;
-
-      // Simple animation logic - in reality this would be based on actual event timestamps
-      setCurrentTime(prev => {
-        const newTime = prev + 16 * speed; // ~60fps
-        if (newTime >= 20000) { // 20 seconds total
-          stopAnimation();
-          return 0;
+    if (!playing) return;
+    const tick = (now: number) => {
+      if (!lastTickRef.current) lastTickRef.current = now;
+      const dt = now - lastTickRef.current;
+      lastTickRef.current = now;
+      setPosition((p) => {
+        const next = p + (dt * speed) / totalMs;
+        if (next >= 1) {
+          setPlaying(false);
+          return 1;
         }
-        return newTime;
+        return next;
       });
-
-      animationRef.current = requestAnimationFrame(step);
+      rafRef.current = requestAnimationFrame(tick);
     };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      lastTickRef.current = 0;
+    };
+  }, [playing, speed, totalMs]);
 
-    animationRef.current = requestAnimationFrame(step);
-  };
+  const visibleEvents = useMemo(() => {
+    if (events.length === 0) return [];
+    const cutoff = startMs + position * totalMs;
+    return events.filter((e) => new Date(e.time).getTime() <= cutoff);
+  }, [events, position, startMs, totalMs]);
 
-  const stopAnimation = () => {
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-    setIsPlaying(false);
-  };
+  if (events.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center text-center px-4">
+        <div>
+          <div className="text-[13px] text-text">No events in this run</div>
+          <div className="text-[12px] text-muted mt-1">
+            The trace contains zero recorded events.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    setCurrentTime(value);
-  };
-
-  const handleSpeedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSpeed(parseFloat(e.target.value));
-  };
-
-  // Get current events based on time
-  const currentEvents = events.filter(
-    event => event.timestamp <= currentTime * 50 // Scale time to match our mock data
-  );
+  const currentTime = new Date(startMs + position * totalMs);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6"
-    >
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6"
-      >
-        <motion.h2
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4"
-        >
-          Replay Visualizer
-        </motion.h2>
-
-        {/* Controls */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex items-center gap-3"
+    <div className="h-full flex flex-col">
+      <div className="p-4 border-b border-border bg-surface flex-shrink-0">
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={() => setPlaying((p) => !p)}
+            className="h-7 px-3 text-[12px] rounded border border-border bg-bg text-text hover:border-accent"
           >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handlePlayPause}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md disabled:opacity-50"
-              disabled={events.length === 0}
-            >
-              {isPlaying ? 'Pause' : 'Play'}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setCurrentTime(0);
-                stopAnimation();
-              }}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md"
-            >
-              Restart
-            </motion.button>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex items-center gap-3"
+            {playing ? "Pause" : "Play"}
+          </button>
+          <button
+            onClick={() => {
+              setPlaying(false);
+              setPosition(0);
+            }}
+            className="h-7 px-3 text-[12px] rounded border border-border text-muted hover:text-text"
           >
-            <span className="text-sm text-gray-600 dark:text-gray-400">Speed:</span>
-            <motion.select
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              value={speed}
-              onChange={handleSpeedChange}
-              className="px-3 py-1 border border-gray-300 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              <option value={0.5}>0.5x</option>
-              <option value={1}>1x</option>
-              <option value={1.5}>1.5x</option>
-              <option value={2}>2x</option>
-            </motion.select>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {currentTime}s / 20s
-            </span>
-          </motion.div>
-        </motion.div>
+            Restart
+          </button>
+          <div className="flex-1" />
+          <label className="text-[11px] text-muted">Speed</label>
+          <select
+            value={speed}
+            onChange={(e) => setSpeed(parseFloat(e.target.value))}
+            className="h-7 px-2 text-[11.5px] mono border border-border rounded bg-bg text-text"
+          >
+            <option value={0.5}>0.5x</option>
+            <option value={1}>1x</option>
+            <option value={2}>2x</option>
+            <option value={4}>4x</option>
+          </select>
+        </div>
+        <div className="relative h-2 bg-bg rounded">
+          <div
+            className="absolute inset-y-0 left-0 bg-accent-dim rounded"
+            style={{ width: `${position * 100}%` }}
+          />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-accent"
+            style={{ left: `calc(${position * 100}% - 4px)` }}
+          />
+          <input
+            type="range"
+            min={0}
+            max={1000}
+            value={Math.round(position * 1000)}
+            onChange={(e) => {
+              setPlaying(false);
+              setPosition(parseInt(e.target.value, 10) / 1000);
+            }}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+        </div>
+        <div className="flex items-center justify-between mt-1.5 mono text-[10.5px] text-muted-2">
+          <span>{formatTime(new Date(startMs).toISOString())}</span>
+          <span>{formatTime(currentTime.toISOString())}</span>
+          <span>{formatTime(new Date(endMs).toISOString())}</span>
+        </div>
+      </div>
 
-        {/* Timeline */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="relative h-4 bg-gray-200 dark:bg-gray-600 rounded-full mb-4"
-        >
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`absolute left-0 top-0 h-full bg-blue-500 rounded-full transition-all duration-200`}
-            style={{ width: `${(currentTime / 20) * 100}%` }}
-          ></motion.div>
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="absolute -top-2 -left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full shadow"
-            style={{ left: `${(currentTime / 20) * 100}%` }}
-          ></motion.div>
-        </motion.div>
-
-        {/* Timeline markers */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="flex justify-between text-xs text-gray-500 dark:text-gray-400"
-        >
-          <span>0s</span>
-          <span>20s</span>
-        </motion.div>
-      </motion.div>
-
-      {/* Events log */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-md"
-      >
-        <motion.h2
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4"
-        >
-          Events Timeline
-        </motion.h2>
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="max-h-96 overflow-y-auto space-y-2 p-4"
-        >
-          {currentEvents.length === 0 ? (
-            <motion.p
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="text-center py-8 text-gray-500 dark:text-gray-400"
-            >
-              No events to display
-            </motion.p>
-          ) : (
-            currentEvents.map((event, index) => (
-              <motion.div
-                key={event.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="p-3 border-l-4 border-blue-500 bg-gray-50 dark:bg-gray-700"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex justify-between items-start mb-1"
+      <div className="flex-1 min-h-0 overflow-auto p-2">
+        {visibleEvents.length === 0 ? (
+          <div className="text-center py-8 text-[12px] text-muted">Press play to start.</div>
+        ) : (
+          <ul className="space-y-1">
+            {visibleEvents.map((e) => (
+              <li key={e.id || `${e.time}-${Math.random()}`}>
+                <button
+                  onClick={() => onEventSelect(e)}
+                  className={[
+                    "w-full text-left px-2.5 py-1.5 rounded border-l-2",
+                    selectedEvent?.id === e.id
+                      ? "border-accent bg-surface"
+                      : "border-transparent bg-surface hover:bg-surface-2",
+                  ].join(" ")}
                 >
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {event.type}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(event.timestamp).toLocaleTimeString()}
-                  </span>
-                </motion.div>
-                <motion.p
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="text-sm text-gray-600 dark:text-gray-400"
-                >
-                  {event.data.description}
-                </motion.p>
-                {event.data.details && (
-                  <motion.p
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="mt-1 text-xs text-gray-500 dark:text-gray-400 break-all"
-                  >
-                    {event.data.details}
-                  </motion.p>
-                )}
-              </motion.div>
-            ))
-          )}
-        </motion.div>
-      </motion.div>
-    </motion.div>
+                  <div className="flex items-center gap-2">
+                    <span className="mono text-[10.5px] text-muted-2 w-[68px] flex-shrink-0">
+                      {formatTime(e.time)}
+                    </span>
+                    <span className="text-[12px] text-text">{e.type}</span>
+                    {e.duration ? (
+                      <span className="mono text-[10.5px] text-muted-2">
+                        {formatDuration(e.duration / 1_000_000)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {e.data && Object.keys(e.data).length > 0 && (
+                    <div className="mono text-[10.5px] text-muted mt-0.5 truncate pl-[76px]">
+                      {summarize(e.data)}
+                    </div>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 };
+
+function formatDuration(seconds: number): string {
+  if (seconds < 1) return `${Math.round(seconds * 1000)}ms`;
+  if (seconds < 60) return `${seconds.toFixed(2)}s`;
+  return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
+}
+
+function summarize(data: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(data)) {
+    let val = v;
+    if (typeof val === "string" && val.length > 80) val = val.slice(0, 80) + "…";
+    parts.push(`${k}=${typeof val === "object" ? JSON.stringify(val) : val}`);
+  }
+  return parts.join(" ");
+}
 
 export default ReplayVisualizer;
