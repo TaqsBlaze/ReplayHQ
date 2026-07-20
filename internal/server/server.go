@@ -74,6 +74,24 @@ func NewServer(addr, baseDir string) *Server {
 	return s
 }
 
+// corsMiddleware sets CORS headers for all responses.
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization,X-CSRF-Token")
+		// Handle preflight requests
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		// Next handler
+		next.ServeHTTP(w, r)
+	})
+}
+
+
 // setupRoutes sets up the HTTP routes.
 func (s *Server) setupRoutes() {
 	r := mux.NewRouter()
@@ -90,7 +108,7 @@ func (s *Server) setupRoutes() {
 	r.HandleFunc("/health", s.handleHealth).Methods("GET")
 	s.httpSrv = &http.Server{
 		Addr:    s.addr,
-		Handler: r,
+		Handler: corsMiddleware(r),
 	}
 }
 
