@@ -10,7 +10,7 @@
 
 > **Git tracks code changes. ReplayHQ tracks AI decisions.**
 
-ReplayHQ is a developer productivity platform that acts as a flight recorder, debugger, and replay system for AI coding agents. It records, observes, analyzes, and replays AI-assisted development sessions to help developers understand, improve, and optimize their AI-powered workflows.
+ReplayHQ is a developer productivity platform that acts like a flight recorder, debugger, and replay system for AI coding agents. It records, observes, analyzes, and replays AI-assisted development sessions to help developers understand, improve, and optimize their AI-powered workflows.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -20,6 +20,7 @@ ReplayHQ is a developer productivity platform that acts as a flight recorder, de
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
+  - [Using the Client Application](#using-the-client-application)
 - [Development Phases](#development-phases)
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
@@ -131,18 +132,50 @@ go install ./cmd/rhq
 # Check version
 rhq version
 
-# Run and record a command
+# Start the server (required for client app)
+rhq server --address :8080
+
+# In another terminal, run and record a command
 rhq run -- echo "Hello, ReplayHQ!"
 
-# List recorded sessions (stubbed)
+# List recorded sessions
 rhq runs
 
-# Replay a session (stubbed)
+# Replay a session
 rhq replay <session-id>
 
-# Inspect a session (stubbed)
+# Inspect a session
 rhq inspect <session-id>
 ```
+
+### Using the Client Application
+
+The ReplayHQ client application (e.g., Electron app) connects to the ReplayHQ backend via WebSocket for two different purposes:
+
+#### 1. Live Terminal Sessions
+For interactive terminal sessions (like a shell):
+1. Start the ReplayHQ server:
+    ```bash
+    rhq server --address :8080
+    ```
+2. Start a live session using the CLI or `/sessions` API endpoint
+3. Launch the client application and connect it to the server at `ws://localhost:8080/terminal?id=<session-id>`
+    - The session ID can be obtained from the `/sessions` endpoint or when creating a session via POST `/sessions`
+4. Once connected, the client will stream the live terminal session allowing real-time interaction
+
+#### 2. Session Playback
+For replaying recorded sessions:
+1. Start the ReplayHQ server:
+    ```bash
+    rhq server --address :8080
+    ```
+2. Record a session using `rhq run` or retrieve a session ID from `rhq runs`
+3. Launch the client application and connect it to the server at `ws://localhost:8080/stream?id=<session-id>`
+    - The session ID can be obtained from the `rhq runs` command or from the server's `/runs` endpoint
+4. Once connected, the client will stream the recorded events allowing playback and inspection
+
+Note: The client application is a separate project and is not included in this repository.
+        Refer to the client application's repository for specific instructions.
 
 ## Development Phases
 
@@ -188,8 +221,10 @@ Following the backend-first approach:
 
 7. **Phase 7: HTTP API** ✓
    - REST API (`/runs`, `/runs/:id`, `/events/:id`)
-   - WebSocket (`/stream`)
-   - *Goal: Power desktop application*
+   - WebSocket (`/stream` for playback, `/terminal` for live sessions)
+   - *Goal: Power desktop application* ✓
+
+> **Note**: With the backend API and WebSocket endpoints now complete, you can develop or use a client application to interact with ReplayHQ. See the [Using the Client Application](#using-the-client-application) section for details on the correct WebSocket endpoints for different use cases.
 
 ## Project Structure
 ```

@@ -70,7 +70,7 @@ func versionCmd() *cobra.Command {
 		Short: "Print the version number of ReplayHQ",
 		Long:  `All software has versions. This is ReplayHQ's.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			logger.Info("ReplayHQ version v0.1.0")
+			logger.Info("ReplayHQ version 1.0.0")
 		},
 	}
 }
