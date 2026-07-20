@@ -95,6 +95,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 // setupRoutes sets up the HTTP routes.
 func (s *Server) setupRoutes() {
 	r := mux.NewRouter()
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ReplayHQ Server is running"))
+	}).Methods("GET")
 	r.HandleFunc("/runs", s.handleRuns).Methods("GET")
 	r.HandleFunc("/runs/{id}", s.handleRunByID).Methods("GET")
 	r.HandleFunc("/runs/{id}/events", s.handleEventsByID).Methods("GET")
