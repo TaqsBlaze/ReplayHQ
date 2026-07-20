@@ -9,6 +9,7 @@ const Replay: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [run, setRun] = useState<RunDetail | null>(null);
   const [events, setEvents] = useState<RHQEvent[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
   const [selectedEvent, setSelectedEvent] = useState<RHQEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,19 +20,22 @@ const Replay: React.FC = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const [runData, eventsData] = await Promise.all([
+        const [runData, eventsData, metricsData] = await Promise.all([
           api.getRun(id),
           api.getRunEvents(id),
+          api.getRunMetrics(id),
         ]);
         if (cancelled) return;
         setRun(runData);
         setEvents(eventsData);
+        setMetrics(metricsData);
         setError(null);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load run");
           setRun(null);
           setEvents([]);
+          setMetrics(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -75,6 +79,13 @@ const Replay: React.FC = () => {
           {formatDateTime(run.startTime)}
         </span>
       </header>
+
+      {metrics && (
+        <div className="p-4 bg-surface border-t border-border">
+          <h2 className="text-[14px] font-semibold text-text mb-2">Performance Metrics</h2>
+          <FormatMetrics metrics={metrics} />
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 flex">
         <div className="flex-1 min-w-0 overflow-auto">
@@ -165,5 +176,57 @@ const EventList: React.FC<ListProps> = ({ events, selectedId, onSelect }) => {
     </div>
   );
 };
+
+// Component to display metrics in a formatted way
+const FormatMetrics: React.FC<{ metrics: any }> = ({ metrics }) => {
+  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics)) {
+    return <div className="text-[12px] text-muted">No metrics available</div>;
+  }
+
+  const entries = Object.entries(metrics);
+
+  if (entries.length === 0) {
+    return <div className="text-[12px] text-muted">No metrics available</div>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map(([key, value]) => (
+        <div key={key} className="flex justify-between">
+          <span className="text-muted">{formatMetricKey(key)}</span>
+          <span className="mono text-text">{formatMetricValue(value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Helper function to format metric keys for display
+function formatMetricKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim();
+}
+
+// Helper function to format metric values for display
+function formatMetricValue(value: any): string {
+  if (value === null || value === undefined) {
+    return '-';
+  } else if (typeof value === 'number') {
+    // Assume it's milliseconds if it's a large number, otherwise seconds
+    if (value >= 1000) {
+      return formatDuration(value / 1000);
+    } else {
+      return `${value.toFixed(3)}s`;
+    }
+  } else if (typeof value === 'string') {
+    return value;
+  } else if (typeof value === 'object') {
+    return JSON.stringify(value);
+  } else {
+    return String(value);
+  }
+}
 
 export default Replay;

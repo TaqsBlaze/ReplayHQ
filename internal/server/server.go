@@ -81,6 +81,7 @@ func (s *Server) setupRoutes() {
 	r.HandleFunc("/runs/{id}", s.handleRunByID).Methods("GET")
 	r.HandleFunc("/runs/{id}/events", s.handleEventsByID).Methods("GET")
 	r.HandleFunc("/runs/{id}/files", s.handleRunFiles).Methods("GET")
+	r.HandleFunc("/runs/{id}/metrics", s.handleRunMetrics).Methods("GET")
 	r.HandleFunc("/stream", s.handleStream).Methods("GET")
 	r.HandleFunc("/sessions", s.handleCreateSession).Methods("POST")
 	r.HandleFunc("/sessions/{id}", s.handleGetSession).Methods("GET")
@@ -193,6 +194,19 @@ func (s *Server) handleRunFiles(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, files)
+}
+
+// handleRunMetrics returns the metrics for a single trace.
+func (s *Server) handleRunMetrics(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceID := vars["id"]
+	traceDir := filepath.Join(s.baseDir, traceID)
+	if _, err := os.Stat(traceDir); os.IsNotExist(err) {
+		http.Error(w, "Run not found", http.StatusNotFound)
+		return
+	}
+	metrics := readJSONFile(filepath.Join(traceDir, "metrics.json"))
+	writeJSON(w, metrics)
 }
 
 // handleStream streams events for a run over a WebSocket connection.
