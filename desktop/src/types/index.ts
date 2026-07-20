@@ -1,29 +1,37 @@
+// Types shared with the Go backend (see internal/server/server.go and
+// internal/events/event.go).
+
+export type RunStatus = "running" | "completed" | "failed" | "unknown";
+
 export interface Run {
   id: string;
   name: string;
   agent: string;
   startTime: string;
   endTime: string;
-  duration: number;
-  status: string;
-  // Add more fields as needed
+  duration: number; // seconds
+  eventCount: number;
+  status: RunStatus;
 }
 
-export interface Event {
+export interface RunDetail extends Run {
+  path: string;
+  metadata: unknown;
+  metrics: unknown;
+}
+
+export interface RHQEvent {
   id: string;
-  timestamp: string;
   type: string;
-  data: any;
+  time: string;
+  duration?: number; // nanoseconds
+  source?: string;
+  data?: Record<string, unknown>;
+  metadata?: Record<string, string>;
 }
 
 export interface FileChange {
   path: string;
-  changeType: 'created' | 'modified' | 'deleted';
-  content?: string;
-}
-
-export interface Metric {
-  name: string;
-  value: number;
-  unit: string;
+  changeType: "created" | "modified" | "deleted";
+  size?: number;
 }
