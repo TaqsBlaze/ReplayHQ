@@ -45,6 +45,9 @@ export const api = {
   getRunFiles: (id: string) =>
     request<string[]>(`/runs/${encodeURIComponent(id)}/files`),
 
+  getRunMetrics: (id: string) =>
+    request<any>(`/runs/${encodeURIComponent(id)}/metrics`),
+
   startSession: (cmd: string, args: string[], cols: number, rows: number) =>
     request<{ id: string; wsPath: string }>("/sessions", {
       method: "POST",
